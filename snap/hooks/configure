@@ -1,0 +1,43 @@
+#!/bin/sh
+# Validate `snap set memos ...` and restart the service so changes apply.
+set -eu
+
+port="$(snapctl get port)"
+case "$port" in
+  '' | *[!0-9]*)
+    echo "port must be a number" >&2
+    exit 1
+    ;;
+esac
+if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+  echo "port must be between 1 and 65535" >&2
+  exit 1
+fi
+
+case "$(snapctl get addr)" in
+  *[!0-9A-Za-z.:-]*)
+    echo "addr must be an IP address or host name, or empty for all interfaces" >&2
+    exit 1
+    ;;
+esac
+
+case "$(snapctl get instance-url)" in
+  '' | http://?* | https://?*) ;;
+  *)
+    echo "instance-url must start with http:// or https://" >&2
+    exit 1
+    ;;
+esac
+
+case "$(snapctl get log-level)" in
+  debug | info | warn | error) ;;
+  *)
+    echo "log-level must be debug, info, warn or error" >&2
+    exit 1
+    ;;
+esac
+
+# Also restart a service that is down, so fixing a bad value brings it back.
+if snapctl services "$SNAP_INSTANCE_NAME.memos" | grep -qwE 'enabled|active'; then
+  snapctl restart "$SNAP_INSTANCE_NAME.memos"
+fi

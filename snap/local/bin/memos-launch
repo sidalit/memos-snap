@@ -1,0 +1,24 @@
+#!/bin/sh
+# Start the service with the settings from `snap set memos ...`.
+set -eu
+
+case "${1:-}" in
+  --version | -V | version) exec "$SNAP/bin/memos" "$1" ;;
+esac
+
+# The database lives in $SNAP_DATA, which snapd keeps per revision, so
+# `snap revert` also restores the database from before an upgrade. Attachments
+# and caches live in $SNAP_COMMON, shared by all revisions.
+export MEMOS_DATA="$SNAP_COMMON"
+export MEMOS_DSN="$SNAP_DATA/memos_prod.db"
+MEMOS_PORT="$(snapctl get port)"
+MEMOS_ADDR="$(snapctl get addr)"
+MEMOS_LOG_LEVEL="$(snapctl get log-level)"
+export MEMOS_PORT MEMOS_ADDR MEMOS_LOG_LEVEL
+
+instance_url="$(snapctl get instance-url)"
+if [ -n "$instance_url" ]; then
+  export MEMOS_INSTANCE_URL="$instance_url"
+fi
+
+exec "$SNAP/bin/memos"

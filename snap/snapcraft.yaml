@@ -1,0 +1,104 @@
+name: memos
+base: core26
+adopt-info: memos
+title: Memos
+summary: Self-hosted, open-source note-taking service
+description: |
+  Memos is a lightweight, self-hosted service for capturing notes. Write in
+  Markdown, attach files, tag and search your memos, and share them with
+  others or keep them private.
+
+  **Getting started**
+
+  The service starts right after installation and listens on
+  127.0.0.1:8081 (this machine only). Open http://localhost:8081 and create
+  the first account, which becomes the administrator.
+
+  To open it to your network:
+
+     sudo snap set memos addr=0.0.0.0
+
+  **Settings**
+
+     sudo snap set memos port=8081 addr=127.0.0.1
+     sudo snap set memos instance-url=https://memos.example.com
+
+  **Upgrades**
+
+  Database migrations run automatically on refresh. If an upgrade causes
+  problems, `sudo snap revert memos` returns to the previous release with
+  the database as it was before the upgrade.
+license: MIT
+grade: stable
+confinement: strict
+website: https://usememos.com
+source-code: https://github.com/usememos/memos
+issues: https://github.com/usememos/memos/issues
+contact: https://github.com/sidalit/memos-snap/issues
+
+platforms:
+  amd64:
+  arm64:
+  armhf:
+
+apps:
+  memos:
+    command: bin/memos-launch
+    daemon: simple
+    restart-condition: on-failure
+    plugs:
+      - network
+      - network-bind
+  backup:
+    command: bin/memos-backup
+
+parts:
+  memos:
+    plugin: nil
+    source: https://github.com/usememos/memos.git
+    source-tag: 'v0.31.0'
+    build-snaps:
+      - go/1.27/stable
+      - node/26/stable
+    build-packages:
+      - git
+    build-environment:
+      - CGO_ENABLED: '0'
+      - GOTOOLCHAIN: local
+    override-build: |
+      # The web interface is embedded into the binary.
+      npm install --global --prefix "$CRAFT_PART_BUILD/.pnpm" pnpm@11.0.1
+      export PATH="$CRAFT_PART_BUILD/.pnpm/bin:$PATH"
+      (cd web && pnpm install --frozen-lockfile && pnpm release)
+
+      # Memos refuses to start without a version in its own format, so take it
+      # from the release tag, or from upstream's script for a development commit.
+      if tag=$(git describe --tags --exact-match 2>/dev/null); then
+        version="${tag#v}"
+      else
+        version=$(bash scripts/release_version.sh development-version .)
+      fi
+      craftctl set version="$version"
+      commit=$(git rev-parse HEAD)
+      go build -trimpath -tags netgo,osusergo \
+        -ldflags "-s -w -X github.com/usememos/memos/internal/version.Version=$version -X github.com/usememos/memos/internal/version.Commit=$commit" \
+        -o "$CRAFT_PART_INSTALL/bin/memos" ./cmd/memos
+
+      # Record the newest database schema this build supports, for the refresh guard.
+      # Calendar migrations (YY.MM/NN__name.sql) record schema YY.M.(NN+1); without
+      # any, the schema is the v0.31.0 baseline, 0.31.8.
+      latest=$(cd store/migration/sqlite && find . -path './[0-9][0-9].[0-9][0-9]/[0-9]*__*.sql' | sed 's#^\./##' | sort -V | tail -n 1)
+      if [ -n "$latest" ]; then
+        schema=$(echo "$latest" | sed -E 's#^([0-9]+)\.0?([0-9]+)/0?([0-9]+)__.*#\1 \2 \3#' | awk '{ print $1 "." $2 "." $3 + 1 }')
+      else
+        schema=0.31.8
+      fi
+      install -d "$CRAFT_PART_INSTALL/share/memos"
+      echo "$schema" > "$CRAFT_PART_INSTALL/share/memos/schema-version"
+      install -Dm644 LICENSE "$CRAFT_PART_INSTALL/share/doc/memos/LICENSE"
+
+  scripts:
+    plugin: dump
+    source: snap/local
+    stage-packages:
+      - sqlite3

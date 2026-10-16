@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stop a refresh that would start memos on a database it cannot open.
+set -eu
+
+exec "$SNAP/bin/memos-check-schema"

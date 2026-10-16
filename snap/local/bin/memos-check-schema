@@ -1,0 +1,45 @@
+#!/bin/sh
+# Refuse to run a release on a database it cannot open, before the service starts.
+# Used by the post-refresh hook: a failing hook makes snapd undo the refresh,
+# so the previous release and its database come back untouched.
+set -eu
+
+db="$SNAP_DATA/memos_prod.db"
+supported="$(cat "$SNAP/share/memos/schema-version")"
+baseline=0.31.8
+
+# A missing or empty database is a fresh install: memos creates the schema itself.
+if [ ! -f "$db" ]; then
+  exit 0
+fi
+setting="$(sqlite3 "$db" "SELECT value FROM system_setting WHERE name = 'BASIC'" 2>/dev/null || true)"
+current="$(printf '%s' "$setting" | sed -n 's/.*"schemaVersion" *: *"\([0-9.]*\)".*/\1/p')"
+if [ -z "$current" ]; then
+  exit 0
+fi
+
+# Compare two X.Y.Z versions numerically: prints -1, 0 or 1.
+compare() {
+  printf '%s\n%s\n' "$1" "$2" | awk -F. '
+    NR == 1 { a1 = $1; a2 = $2; a3 = $3 }
+    NR == 2 {
+      if (a1 != $1) { print (a1 < $1 ? -1 : 1); exit }
+      if (a2 != $2) { print (a2 < $2 ? -1 : 1); exit }
+      if (a3 != $3) { print (a3 < $3 ? -1 : 1); exit }
+      print 0
+    }'
+}
+
+if [ "$(compare "$current" "$supported")" = 1 ]; then
+  echo "The memos database uses schema $current, which is newer than this release supports ($supported)." >&2
+  echo "Memos cannot downgrade a database. Stay on the channel you came from, or restore a backup" >&2
+  echo "from $SNAP_COMMON/backups taken before the upgrade." >&2
+  exit 1
+fi
+
+# Releases after 0.31.0 only upgrade databases that already reached the 0.31.0 schema.
+if [ "$(compare "$supported" "$baseline")" = 1 ] && [ "$(compare "$current" "$baseline")" = -1 ]; then
+  echo "The memos database uses schema $current, which is too old for this release." >&2
+  echo "It must first be opened once by memos 0.31.0 (0.25.3 first for databases older than 0.22)." >&2
+  exit 1
+fi

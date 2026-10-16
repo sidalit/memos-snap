@@ -1,0 +1,7 @@
+#!/bin/sh
+# Back up the database before every refresh, in case an upgrade must be undone
+# after the previous revision is gone. A failed backup does not block the
+# refresh: snapd still keeps the previous revision's copy of the database.
+set -u
+
+"$SNAP/bin/memos-backup" pre-refresh || echo "Warning: database backup failed" >&2

@@ -1,0 +1,27 @@
+#!/bin/sh
+# Save a consistent copy of the database to $SNAP_COMMON/backups.
+# Usage: memos.backup            manual backup, kept until you delete it
+#        memos-backup pre-refresh  automatic backup, only the last 3 are kept
+set -eu
+
+db="$SNAP_DATA/memos_prod.db"
+backups="$SNAP_COMMON/backups"
+if [ ! -f "$db" ]; then
+  echo "No database yet at $db, nothing to back up."
+  exit 0
+fi
+
+kind="${1:-manual}"
+mkdir -p "$backups"
+chmod 700 "$backups"
+dest="$backups/memos_prod-$kind-$SNAP_VERSION-r$SNAP_REVISION-$(date +%Y%m%d-%H%M%S).db"
+# VACUUM INTO gives a consistent copy even while the service is running.
+sqlite3 "$db" "VACUUM INTO '$dest'"
+chmod 600 "$dest"
+echo "Database saved to $dest"
+
+if [ "$kind" = pre-refresh ]; then
+  ls -1t "$backups"/memos_prod-pre-refresh-*.db | tail -n +4 | while read -r old; do
+    rm -f "$old"
+  done
+fi

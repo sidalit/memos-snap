@@ -1,0 +1,5 @@
+#!/bin/sh
+# Default settings: listen on this machine only, as the first visitor becomes the administrator.
+set -eu
+
+snapctl set port=8081 addr=127.0.0.1 log-level=info
