@@ -120,6 +120,10 @@ The service runs as root and cannot read or write files in `/home`. Use the web 
 
 Change `source-tag` in `snap/snapcraft.yaml`, then rebuild. The version is taken from the tag.
 
+## Automation
+
+Builds, publishing, and dependency updates use [snap-automation](https://github.com/sidalit/snap-automation).
+
 ## License
 
 The packaging is MIT-licensed (see `LICENSE`). Memos is MIT-licensed; its dependencies carry their own licenses.
