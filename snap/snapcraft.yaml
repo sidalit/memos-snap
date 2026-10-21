@@ -1,6 +1,6 @@
 name: memos
 base: core26
-adopt-info: memos
+version: '0.31.0'
 title: Memos
 summary: Self-hosted, open-source note-taking service
 description: |
@@ -56,8 +56,7 @@ parts:
   memos:
     plugin: nil
     source: https://github.com/usememos/memos.git
-    # renovate: depName=usememos/memos
-    source-tag: 'v0.31.0'
+    source-tag: v$SNAPCRAFT_PROJECT_VERSION
     build-snaps:
       - go/1.27/stable
       - node/26/stable
@@ -79,7 +78,6 @@ parts:
       else
         version=$(bash scripts/release_version.sh development-version .)
       fi
-      craftctl set version="$version"
       commit=$(git rev-parse HEAD)
       go build -trimpath -tags netgo,osusergo \
         -ldflags "-s -w -X github.com/usememos/memos/internal/version.Version=$version -X github.com/usememos/memos/internal/version.Commit=$commit" \

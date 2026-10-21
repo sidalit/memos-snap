@@ -118,7 +118,7 @@ The service runs as root and cannot read or write files in `/home`. Use the web 
 
 ## Update to a new upstream release
 
-Change `source-tag` in `snap/snapcraft.yaml`, then rebuild. The version is taken from the tag.
+Change `version` in `snap/snapcraft.yaml`, then rebuild.
 
 ## Automation
 
