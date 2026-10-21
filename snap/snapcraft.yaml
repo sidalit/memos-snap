@@ -67,7 +67,8 @@ parts:
       - GOTOOLCHAIN: local
     override-build: |
       # The web interface is embedded into the binary.
-      npm install --global --prefix "$CRAFT_PART_BUILD/.pnpm" pnpm@11.0.1
+      pnpm_package=$(node -p "require('./web/package.json').packageManager.split('+')[0]")
+      npm install --global --prefix "$CRAFT_PART_BUILD/.pnpm" "$pnpm_package"
       export PATH="$CRAFT_PART_BUILD/.pnpm/bin:$PATH"
       (cd web && pnpm install --frozen-lockfile && pnpm release)
 
