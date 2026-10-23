@@ -32,8 +32,12 @@ license: MIT
 grade: stable
 confinement: strict
 website: https://usememos.com
-source-code: https://github.com/usememos/memos
-issues: https://github.com/usememos/memos/issues
+source-code:
+  - https://github.com/usememos/memos
+  - https://github.com/sidalit/memos-snap
+issues:
+  - https://github.com/usememos/memos/issues
+  - https://github.com/sidalit/memos-snap/issues
 contact: https://github.com/sidalit/memos-snap/issues
 
 platforms:
