@@ -1,129 +1,81 @@
-# Memos snap
+<div align="center">
+
+<img src="snap/gui/memos.png" alt="Memos logo" width="128" />
+
+# Memos
+
+**Capture and organize your notes.**
 
 [![memos](https://snapcraft.io/memos/badge.svg)](https://snapcraft.io/memos)
+[![Base: core26](https://img.shields.io/badge/Base-core26-2C8C3C?logo=canonical&logoColor=white)](https://snapcraft.io/core26)
+![Confinement: strict](https://img.shields.io/badge/Confinement-strict-2C8C3C)
+[![Maintainer: sidaliteir](https://img.shields.io/badge/Maintainer-sidaliteir-2C8C3C?logo=snapcraft&logoColor=white)](https://snapcraft.io/publisher/sidaliteir)
+![Architectures: amd64 and arm64](https://img.shields.io/badge/Architectures-amd64%20%7C%20arm64-2C8C3C?logo=linux&logoColor=white)
 
-Snap packaging for [Memos](https://github.com/usememos/memos), a lightweight, self-hosted, open-source note-taking service.
+[Getting Started](#getting-started) · [Configure](#configure) · [Limitations](#limitations) · [Build](#build) · [Support](#support) · [License](#license)
 
-Unofficial build, not affiliated with or endorsed by the Memos project.
+Unofficial snap packaging for [Memos](https://github.com/usememos/memos), a self-hosted note-taking service.
 
-## Build
+</div>
 
-```bash
-snapcraft pack
-```
+---
 
-## Install and try
+## Getting Started
 
 <a href="https://snapcraft.io/memos"><img alt="Get it from the Snap Store" src="https://snapcraft.io/en/dark/install.svg" width="180"></a>
 
 ```bash
-sudo snap install memos   # or a local build: ./memos_0.31.0_*.snap --dangerous
+sudo snap install memos
 ```
 
-The service starts right away and listens on `127.0.0.1:8081`. Open http://localhost:8081 and create the first account: it becomes the administrator.
+Open [http://127.0.0.1:8081](http://127.0.0.1:8081). The service starts automatically; the first account becomes the administrator. Create it before exposing Memos to your network.
 
-## Background service
+## Configure
 
-```bash
-sudo snap logs memos       # view logs
-sudo snap restart memos    # restart
-sudo snap stop --disable memos
-sudo snap start --enable memos
-```
-
-### Settings
-
-| Setting | Default | Description |
-|---|---|---|
-| `port` | `8081` | Port to listen on |
-| `addr` | `127.0.0.1` | Address to listen on. Use `0.0.0.0` for all networks |
-| `instance-url` | not set | Public URL of the instance, for example `https://memos.example.com` |
-| `log-level` | `info` | `debug`, `info`, `warn` or `error` |
-
-Changes apply right away. The service restarts by itself.
+| Setting | Accepted values | Default |
+| --- | --- | --- |
+| `port` | Integer `1`–`65535` | `8081` |
+| `addr` | IP address or hostname; empty listens on all interfaces | `127.0.0.1` |
+| `instance-url` | `http://…`, `https://…`, or empty | Unset |
+| `log-level` | `debug`, `info`, `warn`, `error` | `info` |
 
 ```bash
 sudo snap get memos
-sudo snap set memos port=9000
-sudo snap unset memos instance-url
+sudo snap set memos addr=0.0.0.0 port=8081
 ```
 
-### Open the service to your network
+Changes restart an enabled or running service. Visit `http://<device-ip>:8081` from another device. Use an HTTPS reverse proxy for internet access.
+
+The database is `/var/snap/memos/current/memos_prod.db`; attachments are in `/var/snap/memos/common`.
 
 ```bash
-sudo snap set memos addr=0.0.0.0
+sudo memos.backup    # Database backup
+sudo snap save memos # Full snap snapshot, including attachments
 ```
 
-Then open `http://<this-machine-ip>:8081` from another device. Your firewall must allow the port (for example `sudo ufw allow 8081/tcp`).
+Database backups go to `/var/snap/memos/common/backups`. The snap also keeps the last three automatic database backups made before updates; manual backups are retained.
 
-Create the administrator account before opening the service: until then, anyone who reaches the page can create it. For access from the internet, put Memos behind a reverse proxy with HTTPS and set `instance-url`.
+## Limitations
 
-## Data, upgrades and backups
+- SQLite only. Upload attachments through the browser; the service cannot read your home directory.
+- `snap revert` restores the previous database revision, but shared attachments are not rolled back.
+- Switching to a release that cannot open the current database is refused; use `snap revert` or restore a compatible backup.
+- Existing databases older than `0.22` must first migrate through `0.25.3`, then `0.31.0`. Upgrades beyond `0.31.0` require that version to have run successfully first.
 
-| What | Location |
-|---|---|
-| Database | `/var/snap/memos/current/memos_prod.db` |
-| Attachments and caches | `/var/snap/memos/common` |
-| Backups | `/var/snap/memos/common/backups` |
-
-Memos upgrades its database when a new release starts. The snap protects these upgrades:
-
-- **Revert.** snapd keeps a copy of the database for each installed revision. If an upgrade causes problems, `sudo snap revert memos` returns to the previous release with the database as it was before the upgrade.
-- **Automatic backups.** Before every refresh, the snap saves a copy of the database in `backups/`. The last 3 are kept.
-- **Downgrade guard.** Memos cannot open a database from a newer release. If a refresh would start an older release on a newer database (for example, switching from `edge` back to `beta` after an upgrade), the snap stops the refresh and stays on the current release.
-
-To back up the database by hand (kept until you delete it):
+## Build
 
 ```bash
-sudo memos.backup
+git clone https://github.com/sidalit/memos-snap.git
+cd memos-snap
+sudo snap install snapcraft --classic
+snapcraft pack
 ```
 
-To restore a backup:
+## Support
 
-```bash
-sudo snap stop memos
-sudo cp /var/snap/memos/common/backups/<backup>.db /var/snap/memos/current/memos_prod.db
-sudo rm -f /var/snap/memos/current/memos_prod.db-wal /var/snap/memos/current/memos_prod.db-shm
-sudo snap start memos
-```
-
-`sudo snap save memos` also creates a full snapshot of the database and attachments.
-
-## Channels
-
-| Channel | Builds |
-|---|---|
-| `beta` | The release in `snap/snapcraft.yaml` (currently 0.31.0) |
-| `edge` | The latest commit on upstream's `main` branch, every week |
-
-`edge` can upgrade the database to a schema that `beta` cannot open yet. After that, switching back to `beta` is refused until `beta` catches up. `snap revert` or a backup restores the older database.
-
-## Known limitations
-
-### SQLite only
-
-The snap uses the built-in SQLite database. MySQL and PostgreSQL are not supported, as reverting a refresh cannot restore an external database.
-
-### Attachments after a revert
-
-`snap revert` restores the database but not attachments, which all revisions share. Files uploaded after the upgrade stay on disk without being listed, and files deleted after the upgrade are missing.
-
-### Databases from older Memos installations
-
-Releases after 0.31.0 only upgrade databases that already reached the 0.31.0 schema. To import a database from an older Memos installation, first open it once with Memos 0.31.0 (0.25.3 first, if it is older than 0.22), for example with upstream's binary or container image. The snap refuses to start a release on a database that is too old, and stays on the current release.
-
-### Home folders
-
-The service runs as root and cannot read or write files in `/home`. Use the web interface to upload attachments.
-
-## Update to a new upstream release
-
-Change `version` in `snap/snapcraft.yaml`, then rebuild.
-
-## Automation
-
-Builds, publishing, and dependency updates use [snap-automation](https://github.com/sidalit/snap-automation).
+- **Installation or snap issues:** [open a packaging issue](https://github.com/sidalit/memos-snap/issues).
+- **Application bugs:** [report them upstream](https://github.com/usememos/memos/issues).
 
 ## License
 
-The packaging is MIT-licensed (see `LICENSE`). Memos is MIT-licensed; its dependencies carry their own licenses.
+Snap packaging: [MIT](https://github.com/sidalit/memos-snap/blob/main/LICENSE).

@@ -2,6 +2,7 @@ name: memos
 base: core26
 version: '0.31.0'
 title: Memos
+icon: snap/gui/memos.png
 summary: Self-hosted, open-source note-taking service
 description: |
   Memos is a lightweight, self-hosted service for capturing notes. Write in
