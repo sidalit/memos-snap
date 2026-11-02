@@ -5,7 +5,8 @@
   "packageRules": [
     {
       "matchDepNames": ["upstream"],
-      "overridePackageName": "usememos/memos"
+      "overridePackageName": "usememos/memos",
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-(?<prerelease>rc\\.\\d+))?$"
     }
   ]
 }

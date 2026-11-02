@@ -1,6 +1,6 @@
 name: memos
 base: core26
-version: '0.31.0'
+version: '26.11.0'
 title: Memos
 icon: snap/gui/memos.png
 summary: Self-hosted, open-source note-taking service
@@ -71,7 +71,7 @@ parts:
     after: [pnpm]
     plugin: nil
     source: https://github.com/usememos/memos.git
-    source-tag: v$SNAPCRAFT_PROJECT_VERSION
+    source-tag: $SNAPCRAFT_PROJECT_VERSION
     build-snaps:
       - go/1.27/stable
       - node/26/stable
